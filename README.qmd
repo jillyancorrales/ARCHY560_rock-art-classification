@@ -97,7 +97,7 @@ image_write(combi, "example-contourlines.png",
 
 
 ```
-@fig-comparison shows the original image, the contour lines as they were mapped by the program, and the final output, the contours extracted from the image. The above code chunk creates this sequence of images from the original image, matrix, and contours created earlier in the tutorial.  
+The @fig-comparison shows the original image, the contour lines as they were mapped by the program, and the final output, the contours extracted from the image. The above code chunk creates this sequence of images from the original image, matrix, and contours created earlier in the tutorial.  
 
 ## My Data
 
