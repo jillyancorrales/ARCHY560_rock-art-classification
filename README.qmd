@@ -1,5 +1,95 @@
 ---
 title: "README"
 format: gfm
+prefer-html: true
 ---
+
+## Hypothesis
+
+
+Hypothesis: There are discernible spatial clusters in the motifs of the Kokentau ochre rock art paintings. 
+
+Null Hypothesis: There is no spatial patterning in the motifs within the Kokentau ochre rock art paintings. 
+
+Alternative Explanation: The data collected within the Kokentau Database is biases - perhaps some motifs are easier to see or classify than others, leading to more of these in the data. 
+
+## Variables 
+
+```{r}
+# Import data
+library(dplyr)
+attributes <- readxl::read_excel("data/Kokentau_Attributes.xlsx")
+
+# Select columns and show the first five rows
+features <- attributes |> select( Number, N, E, `Amount of figures`, `Anthropomorphic stick figures`, `Panel-bodied anthropomorphs`, `Zoomorphs`, `Geometric motifs`, `Undetermined motifs`)
+
+features_sample <- features |> slice_head(n = 5)
+
+
+```
+
+
+The main variables of interest here are the spatial information, recorded in the 'N' and 'E' (Northing and Easting) columns of the data set, and the motifs classified in the columns`Anthropomorphic stick figures`, `Panel-bodied anthropomorphs`, `Zoomorphs`, `Geometric motifs`, `Undetermined motifs`. These are the input variables that are needed for the current project. In addition, I included the total number of figures recorded to compare with the numbers classified in each column and the `Number` column to act as an identifier. For this project, the weakest link is the `Undetermined motifs` column, which the researchers used to record the motifs that could not be classified. I think that this column is the weakest link because it lumps together anything that could not be classified, no matter what they look like. These may end up as outliers or complicating factors. I don't think any variables are necessarily missing. 
+
+
+## A First Look without Machine Learning
+
+Because I am interested in spatial clustering, I am creating a basic map in order to see if there are any identifiable clusters in the data. To do so, I will plot each point on the map and color-code them by motif type. As there are several motifs within one latitude/ longitude, the map will be interactive using the leaflet package so that users can click through different motif clusters.  
+
+```{r}
+#| label: fig - features-visualization
+#| fig-cap: Map showing the location and type of motifs in the dataset
+
+# Import packages
+library(leaflet)
+library(tidyr)
+
+# Rename northing and easting columns
+features <-rename(features, lng = E, lat = N)
+features$lng <- as.numeric(features$lng)
+features$lat <- as.numeric(features$lat)
+
+#Transform to tidy data
+features_tidy <-  pivot_longer(features, 
+                               cols= `Anthropomorphic stick figures`:`Undetermined motifs`, 
+                               names_to = "motifs", 
+                               values_to = "frequency") |>
+  filter(frequency > 0)
+
+# Create Map
+map <- leaflet(features_tidy) %>%
+  addTiles() %>%
+  setView(lng = 79.6, lat = 49.8, zoom = 10) %>% 
+  addCircleMarkers(lng = ~lng, lat = ~lat,
+                   radius = 5,
+                   fill = TRUE,
+                   stroke = FALSE,
+                   clusterOptions = markerClusterOptions(),
+                   color = ~case_when(motifs == "Anthropomorphic stick figures" ~ "red",
+                                      motifs == "Panel-bodied anthropomorphs" ~ "darkgreen",
+                                      motifs == "Zoomorphs" ~ "orange",
+                                      motifs == "Geometric motifs" ~ "blue",
+                                      motifs == "Undetermined motifs" ~ "darkgrey"), 
+                   popup = ~paste0("<b>Motif:</b> ", motifs, "<br>","<b>Frequency:</b> ", frequency)) |>
+                     addLegend(position = "bottomright", 
+                               colors = c("red", "darkgreen", "orange", "blue", "darkgrey"),,
+                               labels = c("Anthropomorphic stick figures", "Panel-bodied anthropomorphs",
+                                          "Zoomorphs","Geometric motifs", "Undetermined motifs"))
+
+
+map
+  
+```
+ @fig-features-visualization shows each point in the Kokentau database plotted in its spatial location and color coded by motif type. On first glance, there does not appear to be any discernible pattern in the motifs. One thing that I did notice was that the southern cliff faces appear to mostly have geometric and undetermined motifs while the more northern cliff faces included a wider array. While this figure alone does not appear to show strong evidence of spatial clustering, a machine learning method could quantitatively examine whether any clustering exists that may not be evident in a map alone.  
+
+
+## Predictions
+ 
+As I will be using primarily unsupervised learning methods, such as spatially constrained clustering and random forest with cross-validation,  I expect that my output will be maps and confusion matrices. Since the project is focusing on a spatial clustering question, my benchmark will be a random model - the clustering method and random forest should have stronger results than a random model.
+
+If my hypothesis is right, the output will include a map with distinct spatial clusters and the benchmark will show a higher accuracy (lower error rates) than the null model in the random forest and k-fold cross-validation. 
+
+If my null hypothesis is right, the output will be a map without distinct spatial clusters and the benchmark will show an equivalent or lower accuracy than the null model. 
+
+If my alternative explanation is right, the output may be similar to that for a correct hypothesis, with distinct spatial clusters. The benchmark will show stronger accuracy than a random model, but perhaps it will not be as strong as if the hypothesis is correct. If clusters exist because of collection biases, then they might not appear as strongly as intentional clustering. 
 
